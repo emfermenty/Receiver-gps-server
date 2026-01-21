@@ -1,0 +1,6 @@
+@mapsence.Api_HostAddress = http://localhost:5142
+
+GET {{mapsence.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

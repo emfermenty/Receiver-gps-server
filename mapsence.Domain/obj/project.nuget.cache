@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "5LNx8ah3Hhg=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\demra\\source\\repos\\mapsenceToAsp\\mapsence.Domain\\mapsence.Domain.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\demra\\.nuget\\packages\\nettopologysuite\\2.6.0\\nettopologysuite.2.6.0.nupkg.sha512"
+  ],
+  "logs": []
+}
