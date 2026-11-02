@@ -25,8 +25,6 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<ApplicationContext>(options =>
     options.UseNpgsql(connectionString,
-        // История миграций лежит в zxc явно: иначе при первом запуске она попадает в public (схемы zxc ещё нет),
-        // а при следующем ищется уже в zxc, и миграция применяется повторно
         o => o.UseNetTopologySuite().MigrationsHistoryTable("__EFMigrationsHistory", "zxc")
     ));
 
@@ -41,8 +39,6 @@ builder.Services.AddCors(options =>
         });
 });
 
-// queue — только Kafka, socket — только сокет, auto — оба канала сразу,
-// чтобы принимать строки, когда экспорт перешёл на резервный сокет
 var importTransport = builder.Configuration["Import:Transport"];
 if (importTransport is not ("queue" or "socket" or "auto"))
     throw new InvalidOperationException($"Неизвестный Import:Transport: {importTransport}");

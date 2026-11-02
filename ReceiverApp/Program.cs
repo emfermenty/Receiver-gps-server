@@ -10,8 +10,6 @@ namespace Receiver_server
     {
         static async Task Main(string[] args)
         {
-            // Настройки берутся из appsettings.json и переопределяются аргументами,
-            // например: ReceiverApp --Export:Transport=socket --Export:SocketHost=10.0.0.5
             var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
             {
                 Args = args,

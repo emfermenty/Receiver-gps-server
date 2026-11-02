@@ -61,7 +61,6 @@ public class ExportService(RawPointStore store, IEnumerable<IExportChannel> chan
             }
             catch (Exception ex) when (!token.IsCancellationRequested)
             {
-                // О падении сообщаем один раз, а не на каждую повторную попытку
                 if (!_retryAt.ContainsKey(channel))
                     Console.WriteLine($"[{channel.Name}] Канал недоступен: {ex.Message}");
 

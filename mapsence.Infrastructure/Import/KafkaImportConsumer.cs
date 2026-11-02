@@ -26,7 +26,6 @@ public class KafkaImportConsumer(
             SecurityProtocol = SecurityProtocol.Ssl,
             SslCaLocation = Path.Combine(environment.ContentRootPath, configuration["Tls:CaPath"]!),
             GroupId = configuration["Kafka:GroupId"],
-            // Строки, отправленные пока mapsence был выключен, тоже должны быть прочитаны
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,
             AllowAutoCreateTopics = true
@@ -81,7 +80,6 @@ public class KafkaImportConsumer(
         }
         catch (JsonException ex)
         {
-            // Повтор не поможет: такая строка не разберётся никогда и заблокировала бы топик
             Console.WriteLine($"[kafka] Пропущено некорректное сообщение: {ex.Message}");
             return;
         }
