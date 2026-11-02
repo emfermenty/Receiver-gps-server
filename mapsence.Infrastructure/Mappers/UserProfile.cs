@@ -8,9 +8,7 @@ public class UserProfile : Profile
 {
     public UserProfile()
     {
-        CreateMap<User, UserEntity>()
-            .ForMember(dest => dest.GeoData, opt => opt.Ignore());
-        CreateMap<UserEntity, User>()
-            .ForMember(dest => dest.GeoData, opt => opt.Ignore());
+        CreateMap<User, UserEntity>();
+        CreateMap<UserEntity, User>();
     }
 }

@@ -1,0 +1,2 @@
+# Скрипты запускаются и в Linux: перевод строки CRLF ломает shebang
+*.sh text eol=lf

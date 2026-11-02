@@ -15,15 +15,22 @@ public class ApplicationContext : DbContext
     public DbSet<TrackEntity> Tracks => Set<TrackEntity>();
     public DbSet<SensorEntity> Sensors => Set<SensorEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
+    public DbSet<DeviceModelEntity> DeviceModels => Set<DeviceModelEntity>();
+    public DbSet<EventTypeEntity> EventTypes => Set<EventTypeEntity>();
+    public DbSet<SensorSessionEntity> SensorSessions => Set<SensorSessionEntity>();
     public DbSet<TrackView> TrackView => Set<TrackView>();
     public DbSet<TrackPointInfo> TrackPointInfo => Set<TrackPointInfo>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.HasPostgresExtension("postgis");
         modelBuilder.ApplyConfiguration(new TrackConfiguration());
         modelBuilder.ApplyConfiguration(new SensorConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new GeoDataConfiguration());
+        modelBuilder.ApplyConfiguration(new DeviceModelConfiguration());
+        modelBuilder.ApplyConfiguration(new EventTypeConfiguration());
+        modelBuilder.ApplyConfiguration(new SensorSessionConfiguration());
         modelBuilder.ApplyConfiguration(new TrackPointInfoConfiguration());
         modelBuilder.ApplyConfiguration(new TrackViewConfiguration());
     }

@@ -1,0 +1,21 @@
+# Результаты сборки .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.DotSettings.user
+
+# SQLite (raw_points.db и служебные файлы WAL)
+*.db
+*.db-shm
+*.db-wal
+
+# Адреса машин и пароли для docker compose (шаблон — .env.example)
+.env
+
+# Сертификаты и закрытые ключи TLS (выпускаются скриптами из tools/certs)
+certs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

@@ -9,11 +9,11 @@ public class GeoDataProfile : Profile
     public GeoDataProfile()
     {
         CreateMap<GeoData, GeoDataEntity>()
-            .ForMember(dest => dest.User, opt => opt.Ignore())
+            .ForMember(dest => dest.EventType, opt => opt.Ignore())
             .ForMember(dest => dest.Sensor, opt => opt.Ignore());
-        
+
         CreateMap<GeoDataEntity, GeoData>()
-            .ForMember(dest => dest.User, opt => opt.Ignore())
+            .ForMember(dest => dest.EventType, opt => opt.Ignore())
             .ForMember(dest => dest.Sensor, opt => opt.Ignore());
     }
 }

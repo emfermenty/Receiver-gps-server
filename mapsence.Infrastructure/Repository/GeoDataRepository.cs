@@ -12,7 +12,6 @@ public class GeoDataRepository(ApplicationContext context, IMapper _mapper) : IG
     {
         var entity = await context.GeoData.Where(g => g.SensorId == sensorId)
             .OrderBy(g => g.DateTime)
-            .Include(t => t.User)
             .Include(t => t.Sensor)
             .AsNoTracking()
             .ToListAsync();

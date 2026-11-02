@@ -7,7 +7,7 @@ using mapsence.Infrastructure.Data;
 using mapsence.Infrastructure.Repositories;
 using mapsencetoWebApi.Repository;
 using mapsenceto.Application.Services;
-using mapsencetoWebApi.Kafka;
+using mapsence.Infrastructure.Import;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using NetTopologySuite.IO.Converters;
@@ -25,7 +25,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<ApplicationContext>(options =>
     options.UseNpgsql(connectionString,
-        o => o.UseNetTopologySuite()
+        // История миграций лежит в zxc явно: иначе при первом запуске она попадает в public (схемы zxc ещё нет),
+        // а при следующем ищется уже в zxc, и миграция применяется повторно
+        o => o.UseNetTopologySuite().MigrationsHistoryTable("__EFMigrationsHistory", "zxc")
     ));
 
 builder.Services.AddCors(options =>
@@ -39,7 +41,17 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
+// queue — только Kafka, socket — только сокет, auto — оба канала сразу,
+// чтобы принимать строки, когда экспорт перешёл на резервный сокет
+var importTransport = builder.Configuration["Import:Transport"];
+if (importTransport is not ("queue" or "socket" or "auto"))
+    throw new InvalidOperationException($"Неизвестный Import:Transport: {importTransport}");
+
+builder.Services.AddSingleton<GeoDataImportRunner>();
+if (importTransport is "queue" or "auto")
+    builder.Services.AddHostedService<KafkaImportConsumer>();
+if (importTransport is "socket" or "auto")
+    builder.Services.AddHostedService<SocketImportServer>();
 
 builder.Services.AddScoped<IGeoDataRepository, GeoDataRepository>();
 builder.Services.AddScoped<ISensorRepository, SensorRepository>();
@@ -47,12 +59,14 @@ builder.Services.AddScoped<ITrackRepository, TrackRepository>();
 builder.Services.AddScoped<ITrackPointInfoRepository, TrackPointInfoRepository>();
 builder.Services.AddScoped<ITrackViewRepository, TrackViewRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IGeoDataImportRepository, GeoDataImportRepository>();
 
 builder.Services.AddScoped<ITrackService, TrackService>();
 builder.Services.AddScoped<ISensorService, SensorService>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGeoDataService, GeoDataService>();
+builder.Services.AddScoped<IGeoDataImportService, GeoDataImportService>();
 
 builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
 builder.Services.AddAuth(builder.Configuration);
@@ -95,6 +109,13 @@ builder.Services.AddControllers()
     });
 
 var app = builder.Build();
+
+// В Docker схема создаётся при старте: у каждого экземпляра mapsence своя пустая БД
+if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+{
+    using var scope = app.Services.CreateScope();
+    scope.ServiceProvider.GetRequiredService<ApplicationContext>().Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {

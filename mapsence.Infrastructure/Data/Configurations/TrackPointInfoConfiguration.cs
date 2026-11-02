@@ -10,6 +10,8 @@ public class TrackPointInfoConfiguration : IEntityTypeConfiguration<TrackPointIn
     public void Configure(EntityTypeBuilder<TrackPointInfo> builder)
     {
         builder.ToView("v_track_info", "zxc");
+        // [Table] на модели добавляет ещё и маппинг на таблицу; вьюха создаётся SQL-ом в миграции
+        builder.Metadata.SetIsTableExcludedFromMigrations(true);
         builder.HasKey(e => e.Id);
             
         builder.Property(e => e.Id)

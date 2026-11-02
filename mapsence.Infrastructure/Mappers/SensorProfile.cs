@@ -10,10 +10,14 @@ public class SensorProfile : Profile
     {
         CreateMap<Sensor, SensorEntity>()
             .ForMember(dest => dest.Tracks, opt => opt.Ignore())
-            .ForMember(dest => dest.GeoData, opt => opt.Ignore());
-        
+            .ForMember(dest => dest.GeoData, opt => opt.Ignore())
+            .ForMember(dest => dest.Model, opt => opt.Ignore())
+            .ForMember(dest => dest.Sessions, opt => opt.Ignore());
+
         CreateMap<SensorEntity, Sensor>()
             .ForMember(dest => dest.Tracks, opt => opt.Ignore())
-            .ForMember(dest => dest.GeoData, opt => opt.Ignore());
+            .ForMember(dest => dest.GeoData, opt => opt.Ignore())
+            .ForMember(dest => dest.Model, opt => opt.Ignore())
+            .ForMember(dest => dest.Sessions, opt => opt.Ignore());
     }
 }

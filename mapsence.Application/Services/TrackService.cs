@@ -9,20 +9,17 @@ public class TrackService : ITrackService
     private readonly ITrackRepository _trackRepository;
     private readonly ITrackPointInfoRepository _trackPointInfoRepository;
     private readonly ITrackViewRepository _trackViewRepository;
-    private readonly IKafkaProducerService _producer;
     //private readonly ISensorRepository _sensorRepository;
 
     public TrackService(
         ITrackRepository trackRepository,
         ITrackPointInfoRepository trackPointInfoRepository,
-        ITrackViewRepository trackViewRepository,
-        IKafkaProducerService producer)
-        //ISensorRepository sensorRepository) 
+        ITrackViewRepository trackViewRepository)
+        //ISensorRepository sensorRepository)
     {
         _trackRepository = trackRepository;
         _trackPointInfoRepository = trackPointInfoRepository;
         _trackViewRepository = trackViewRepository;
-        _producer = producer;
         //_sensorRepository = sensorRepository;
     }
     public async Task<Track?> FindTrackByIdAsync(int id)
@@ -67,17 +64,17 @@ public class TrackService : ITrackService
         await _trackRepository.PrcEditTrackAsync(trackId, name);
     }
 
+    // Точки привязываются к треку по интервалу date_start..date_stop (см. v_track_info),
+    // поэтому ReceiverApp не нужно сообщать о начале и конце трека
     public async Task StartTrack(StartTrackRequest request)
     {
-        var id = await _trackRepository.PrcStartTrackAsync(request);
-        await _producer.SendMessageAsync($"START:{id}:{request.UserId}:862549040911052");
+        await _trackRepository.PrcStartTrackAsync(request);
     }
 
     public async Task StopTrack(int trackId)
     {
         var dateStop = DateTime.UtcNow;
         await _trackRepository.PrcStopTrackAsync(trackId, dateStop);
-        await _producer.SendMessageAsync($"STOP:862549040911052:{trackId}");
     }
 
     public async Task ComebackTrack(int trackId)

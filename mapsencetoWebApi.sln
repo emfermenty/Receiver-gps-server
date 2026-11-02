@@ -1,5 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mapsence.Domain", "mapsence.Domain\mapsence.Domain.csproj", "{AB318183-182F-4649-AA30-0992F21F5CFB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mapsence.Application", "mapsence.Application\mapsence.Application.csproj", "{6E557B52-A9CB-44DD-9BCC-4D3769B2EACB}"
@@ -11,6 +12,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Receiver", "Receiver", "{1E0F56BF-78FB-4844-960E-90DD8FE8498D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReceiverApp", "ReceiverApp\ReceiverApp.csproj", "{000E1CF3-D5BC-4C67-B87E-D4F3A5889F4E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gps.Transport", "Gps.Transport\Gps.Transport.csproj", "{F3BC4F19-F819-45F9-8503-92037FECBE90}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,5 +41,9 @@ Global
 		{000E1CF3-D5BC-4C67-B87E-D4F3A5889F4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{000E1CF3-D5BC-4C67-B87E-D4F3A5889F4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{000E1CF3-D5BC-4C67-B87E-D4F3A5889F4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3BC4F19-F819-45F9-8503-92037FECBE90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3BC4F19-F819-45F9-8503-92037FECBE90}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3BC4F19-F819-45F9-8503-92037FECBE90}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3BC4F19-F819-45F9-8503-92037FECBE90}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

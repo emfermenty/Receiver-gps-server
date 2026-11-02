@@ -11,15 +11,21 @@ public class SensorEntity
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("id", Order = 0)]
     public int Id { get; set; }
-    
+
     [Column("imei")]
     public string? Imei { get; set; }
-    
+
+    [ForeignKey("Model")]
+    [Column("model_id")]
+    public int? ModelId { get; set; }
+    public DeviceModelEntity? Model { get; set; }
+
     [ForeignKey("User")]
     [Column("user_id")]
-    public int UserId { get; set; }
-    public UserEntity User { get; set; }
-    
+    public int? UserId { get; set; }
+    public UserEntity? User { get; set; }
+
     public virtual List<TrackEntity>? Tracks { get; set; }
     public virtual List<GeoDataEntity>? GeoData { get; set; }
+    public virtual List<SensorSessionEntity>? Sessions { get; set; }
 }

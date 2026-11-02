@@ -16,8 +16,7 @@ public class UserEntity
     public string Username { get; set; }
     [Column("pass")]
     public string Pass { get; set; }
-    
-    public virtual List<GeoDataEntity>? GeoData { get; set; }
+
     public virtual List<SensorEntity>? Sensors { get; set; }
     public virtual List<TrackEntity>? Tracks { get; set; }
 }

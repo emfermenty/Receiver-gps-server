@@ -1,0 +1,126 @@
+# Профили:
+#   export — машина экспорта: Kafka, ReceiverApp, имитатор трекеров
+#   import — машина импорта: mapsence и его PostgreSQL + PostGIS
+#
+# Локально всё сразу:   docker compose --profile export --profile import up --build
+# Машина экспорта:      docker compose --profile export up -d --build
+# Машина импорта:       docker compose --profile import up -d --build
+# Адреса машин задаются в .env (см. .env.example), без .env используются локальные значения.
+#
+# Оба канала защищены TLS. Перед первым запуском выпустить сертификаты в папку certs/:
+#   tools/certs/generate-certs.sh   или   tools\certs\generate-certs.ps1
+#
+# Канал передачи (TRANSPORT): auto — Kafka с переходом на сокет при сбое, queue — только Kafka, socket — только сокет.
+# Проверка перехода на сокет: docker compose stop kafka, возврат на Kafka: docker compose start kafka
+
+services:
+  kafka:
+    image: apache/kafka:3.9.0
+    profiles: [export]
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    environment:
+      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      # INTERNAL — для контейнеров этой машины, EXTERNAL — для машины импорта
+      KAFKA_LISTENERS: INTERNAL://:29092,EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://${KAFKA_EXTERNAL_HOST:-localhost}:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SSL,EXTERNAL:SSL,CONTROLLER:PLAINTEXT
+      KAFKA_SSL_KEYSTORE_TYPE: PEM
+      KAFKA_SSL_KEYSTORE_LOCATION: /certs/kafka.pem
+      KAFKA_SSL_TRUSTSTORE_TYPE: PEM
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /certs/ca.crt
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    # Длинная форма монтирования: если сертификата нет, запуск сразу упадёт с понятной ошибкой,
+    # а короткая молча создала бы вместо файла пустую папку
+    volumes:
+      - { type: bind, source: ./certs/kafka.pem, target: /certs/kafka.pem, read_only: true }
+      - { type: bind, source: ./certs/ca.crt, target: /certs/ca.crt, read_only: true }
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'security.protocol=SSL\\nssl.truststore.type=PEM\\nssl.truststore.location=/certs/ca.crt\\n' > /tmp/client.properties && /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server kafka:29092 --command-config /tmp/client.properties > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 15s
+
+  # Без depends_on на kafka: при выключенном брокере ReceiverApp работает через сокет
+  receiver:
+    build:
+      context: .
+      dockerfile: ReceiverApp/Dockerfile
+    profiles: [export]
+    restart: unless-stopped
+    environment:
+      Sqlite__Path: /data/raw_points.db
+      Export__Transport: ${TRANSPORT:-auto}
+      Export__SocketHost: ${IMPORT_HOST:-mapsence}
+      Kafka__BootstrapServers: kafka:29092
+      Tls__CaPath: /certs/ca.crt
+    ports:
+      - "40433:40433"   # трекеры
+    volumes:
+      - receiver-data:/data
+      - { type: bind, source: ./certs/ca.crt, target: /certs/ca.crt, read_only: true }
+
+  simulator:
+    build: tools/simulator
+    profiles: [export]
+    restart: unless-stopped
+    command: ["--host", "receiver", "--port", "40433", "--devices", "3", "--interval", "3"]
+
+  postgis:
+    image: postgis/postgis:17-3.5
+    profiles: [import]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mapsence
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    healthcheck:
+      # по TCP, а не через сокет: во время первичной инициализации временный сервер слушает только сокет
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d mapsence"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgis-data:/var/lib/postgresql/data
+
+  mapsence:
+    build:
+      context: .
+      dockerfile: mapsence.Api/Dockerfile
+    profiles: [import]
+    restart: unless-stopped
+    depends_on:
+      postgis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgis;Port=5432;Database=mapsence;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres};Search Path=zxc,public
+      Database__MigrateOnStartup: "true"
+      Import__Transport: ${TRANSPORT:-auto}
+      Kafka__BootstrapServers: ${KAFKA_BOOTSTRAP:-kafka:29092}
+      Tls__CaPath: /certs/ca.crt
+      Tls__CertPath: /certs/mapsence.crt
+      Tls__KeyPath: /certs/mapsence.key
+    ports:
+      - "5001:8080"     # HTTP API и Swagger
+      - "5050:5050"     # сокет импорта по TLS, сюда подключается ReceiverApp
+    volumes:
+      - { type: bind, source: ./certs/ca.crt, target: /certs/ca.crt, read_only: true }
+      - { type: bind, source: ./certs/mapsence.crt, target: /certs/mapsence.crt, read_only: true }
+      - { type: bind, source: ./certs/mapsence.key, target: /certs/mapsence.key, read_only: true }
+
+volumes:
+  receiver-data:
+  postgis-data:

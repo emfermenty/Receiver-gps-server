@@ -8,6 +8,7 @@
     
     <ItemGroup>
         <ProjectReference Include="..\mapsence.Domain\mapsence.Domain.csproj" />
+        <ProjectReference Include="..\Gps.Transport\Gps.Transport.csproj" />
     </ItemGroup>
     
     <ItemGroup>

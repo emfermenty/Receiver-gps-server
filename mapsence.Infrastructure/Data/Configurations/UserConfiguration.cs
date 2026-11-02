@@ -17,7 +17,8 @@ public class UserConfiguration : IEntityTypeConfiguration<UserEntity>
             .ValueGeneratedOnAdd();
 
         builder.Property(e => e.Username)
-            .HasColumnType("login");
+            .HasColumnName("login")
+            .HasMaxLength(255);
 
         builder.Property(e => e.Pass)
             .HasColumnName("pass")
@@ -25,7 +26,7 @@ public class UserConfiguration : IEntityTypeConfiguration<UserEntity>
         builder.HasMany(e => e.Sensors)
             .WithOne(u => u.User)
             .HasForeignKey(u => u.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull);
         builder.HasMany(e => e.Tracks)
             .WithOne(u => u.User)
             .HasForeignKey(u => u.UserId)
