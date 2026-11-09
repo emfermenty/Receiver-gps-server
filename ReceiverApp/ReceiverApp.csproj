@@ -9,12 +9,17 @@
 
     <ItemGroup>
       <PackageReference Include="Confluent.Kafka" Version="2.13.0" />
+      <PackageReference Include="Grpc.Net.Client" Version="2.85.0" />
       <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.12" />
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Gps.Transport\Gps.Transport.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+    <Protobuf Include="..\protos\raw_point.proto"
+              GrpcServices="Client" />
     </ItemGroup>
 
     <ItemGroup>

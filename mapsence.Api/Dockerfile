@@ -7,6 +7,9 @@ COPY mapsence.Domain/mapsence.Domain.csproj mapsence.Domain/
 COPY mapsence.Application/mapsence.Application.csproj mapsence.Application/
 COPY mapsence.Infrastructure/mapsence.Infrastructure.csproj mapsence.Infrastructure/
 COPY mapsence.Api/mapsence.Api.csproj mapsence.Api/
+
+COPY protos/ protos/
+
 RUN dotnet restore mapsence.Api/mapsence.Api.csproj
 
 COPY Gps.Transport/ Gps.Transport/

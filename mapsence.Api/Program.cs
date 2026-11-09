@@ -1,3 +1,4 @@
+
 using Infrastructure.Mapping.Profiles;
 using mapsence.Application.Services;
 using mapsence.Application.Services.Extensions;
@@ -8,11 +9,17 @@ using mapsence.Infrastructure.Repositories;
 using mapsencetoWebApi.Repository;
 using mapsenceto.Application.Services;
 using mapsence.Infrastructure.Import;
+using mapsence.Extensions;
+using mapsence.Grpc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using NetTopologySuite.IO.Converters;
 
-var builder = WebApplication.CreateBuilder(args); 
+var builder = WebApplication.CreateBuilder(args);
+
+// --------------------
+// AutoMapper
+// --------------------
 
 builder.Services.AddAutoMapper(
     typeof(UserProfile).Assembly,
@@ -21,33 +28,67 @@ builder.Services.AddAutoMapper(
     typeof(TrackProfile).Assembly
 );
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// --------------------
+// Database
+// --------------------
+
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<ApplicationContext>(options =>
-    options.UseNpgsql(connectionString,
-        o => o.UseNetTopologySuite().MigrationsHistoryTable("__EFMigrationsHistory", "zxc")
-    ));
+    options.UseNpgsql(
+        connectionString,
+        o => o.UseNetTopologySuite()
+            .MigrationsHistoryTable("__EFMigrationsHistory", "zxc")
+    )
+);
+
+// --------------------
+// CORS
+// --------------------
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-        });
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
 
-var importTransport = builder.Configuration["Import:Transport"];
-if (importTransport is not ("queue" or "socket" or "auto"))
-    throw new InvalidOperationException($"Неизвестный Import:Transport: {importTransport}");
+// --------------------
+// Import transports
+// --------------------
+
+var importTransport =
+    builder.Configuration["Import:Transport"] ?? "grpc";
+
+if (importTransport is not ("grpc" or "queue" or "auto"))
+{
+    throw new InvalidOperationException(
+        $"Неизвестный Import:Transport: {importTransport}");
+}
 
 builder.Services.AddSingleton<GeoDataImportRunner>();
+
 if (importTransport is "queue" or "auto")
+{
     builder.Services.AddHostedService<KafkaImportConsumer>();
-if (importTransport is "socket" or "auto")
-    builder.Services.AddHostedService<SocketImportServer>();
+}
+
+// --------------------
+// gRPC
+// --------------------
+
+builder.Services.AddGrpc();
+
+// Настраиваем HTTP API и отдельный HTTPS endpoint для gRPC.
+builder.AddGrpcTls();
+
+// --------------------
+// Repositories
+// --------------------
 
 builder.Services.AddScoped<IGeoDataRepository, GeoDataRepository>();
 builder.Services.AddScoped<ISensorRepository, SensorRepository>();
@@ -57,20 +98,42 @@ builder.Services.AddScoped<ITrackViewRepository, TrackViewRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGeoDataImportRepository, GeoDataImportRepository>();
 
+// --------------------
+// Application services
+// --------------------
+
 builder.Services.AddScoped<ITrackService, TrackService>();
 builder.Services.AddScoped<ISensorService, SensorService>();
+builder.Services.AddScoped<ITrackService, TrackService>();
+builder.Services.AddScoped<ITrackViewRepository, TrackViewRepository>();
+
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGeoDataService, GeoDataService>();
 builder.Services.AddScoped<IGeoDataImportService, GeoDataImportService>();
 
-builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
+// --------------------
+// Authentication
+// --------------------
+
+builder.Services.Configure<AuthSettings>(
+    builder.Configuration.GetSection("AuthSettings"));
+
 builder.Services.AddAuth(builder.Configuration);
 
+// --------------------
+// Swagger
+// --------------------
+
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Your API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Your API",
+        Version = "v1"
+    });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -100,37 +163,53 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
     {
-        options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
-        options.SerializerSettings.Converters.Add(new GeometryConverter());
+        options.SerializerSettings.ReferenceLoopHandling =
+            Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+
+        options.SerializerSettings.Converters.Add(
+            new GeometryConverter());
     });
+
 
 var app = builder.Build();
 
-// В Docker схема создаётся при старте: у каждого экземпляра mapsence своя пустая БД
 if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {
     using var scope = app.Services.CreateScope();
-    scope.ServiceProvider.GetRequiredService<ApplicationContext>().Database.Migrate();
+
+    scope.ServiceProvider
+        .GetRequiredService<ApplicationContext>()
+        .Database.Migrate();
 }
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
+
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Mapsence API V1");
+        c.SwaggerEndpoint(
+            "/swagger/v1/swagger.json",
+            "Mapsence API V1");
     });
 }
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+
 app.UseStaticFiles();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+if (importTransport is "grpc" or "auto")
+{
+    app.MapGrpcService<RawPointTransferGrpcService>();
+}
 
 app.Run();

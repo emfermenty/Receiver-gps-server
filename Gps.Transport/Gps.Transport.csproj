@@ -6,4 +6,18 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Google.Protobuf" Version="3.36.2" />
+      <PackageReference Include="Grpc.Core.Api" Version="2.85.0" />
+      <PackageReference Include="Grpc.Net.Client" Version="2.85.0" />
+      <PackageReference Include="Grpc.Tools" Version="2.85.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+    <ItemGroup>
+        <Protobuf Include="..\protos\raw_point.proto"
+                  GrpcServices="Both" />
+    </ItemGroup>
+
 </Project>

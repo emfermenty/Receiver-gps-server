@@ -4,6 +4,7 @@ WORKDIR /src
 
 COPY Gps.Transport/Gps.Transport.csproj Gps.Transport/
 COPY ReceiverApp/ReceiverApp.csproj ReceiverApp/
+COPY protos/ protos/
 RUN dotnet restore ReceiverApp/ReceiverApp.csproj
 
 COPY Gps.Transport/ Gps.Transport/

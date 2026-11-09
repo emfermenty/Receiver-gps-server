@@ -10,8 +10,8 @@
 # Оба канала защищены TLS. Перед первым запуском выпустить сертификаты в папку certs/:
 #   tools/certs/generate-certs.sh   или   tools\certs\generate-certs.ps1
 #
-# Канал передачи (TRANSPORT): auto — Kafka с переходом на сокет при сбое, queue — только Kafka, socket — только сокет.
-# Проверка перехода на сокет: docker compose stop kafka, возврат на Kafka: docker compose start kafka
+# Канал передачи (TRANSPORT): grpc — gRPC (для лабораторной), auto — gRPC с резервным Kafka, queue — только Kafka.
+# Для сдачи использовать TRANSPORT=grpc, чтобы подтвердить передачу через RPC.
 
 services:
   kafka:
@@ -51,7 +51,7 @@ services:
       retries: 10
       start_period: 15s
 
-  # Без depends_on на kafka: при выключенном брокере ReceiverApp работает через сокет
+  # Без depends_on на kafka: для режима grpc брокер не требуется
   receiver:
     build:
       context: .
@@ -60,15 +60,18 @@ services:
     restart: unless-stopped
     environment:
       Sqlite__Path: /data/raw_points.db
-      Export__Transport: ${TRANSPORT:-auto}
-      Export__SocketHost: ${IMPORT_HOST:-mapsence}
+      Export__Transport: ${TRANSPORT:-grpc}
       Kafka__BootstrapServers: kafka:29092
+      Grpc__Address: ${GRPC_ADDRESS:-https://mapsence:5001}
       Tls__CaPath: /certs/ca.crt
+      Grpc__ClientCertificate__Path: /certs/receiver-client.pfx
+      Grpc__ClientCertificate__Password: ${CLIENT_CERT_PASSWORD:-receiver123}
     ports:
       - "40433:40433"   # трекеры
     volumes:
       - receiver-data:/data
-      - { type: bind, source: ./certs/ca.crt, target: /certs/ca.crt, read_only: true }
+      - ./certs/ca.crt:/certs/ca.crt:ro
+      - ./certs/receiver-client.pfx:/certs/receiver-client.pfx:ro
 
   simulator:
     build: tools/simulator
@@ -108,18 +111,20 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: Host=postgis;Port=5432;Database=mapsence;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres};Search Path=zxc,public
       Database__MigrateOnStartup: "true"
-      Import__Transport: ${TRANSPORT:-auto}
+      Import__Transport: ${TRANSPORT:-grpc}
       Kafka__BootstrapServers: ${KAFKA_BOOTSTRAP:-kafka:29092}
       Tls__CaPath: /certs/ca.crt
       Tls__CertPath: /certs/mapsence.crt
       Tls__KeyPath: /certs/mapsence.key
+      Grpc__Port: 5001
+      HttpPort: 8080
     ports:
       - "5001:8080"     # HTTP API и Swagger
-      - "5050:5050"     # сокет импорта по TLS, сюда подключается ReceiverApp
+      - "5002:5001"
     volumes:
-      - { type: bind, source: ./certs/ca.crt, target: /certs/ca.crt, read_only: true }
-      - { type: bind, source: ./certs/mapsence.crt, target: /certs/mapsence.crt, read_only: true }
-      - { type: bind, source: ./certs/mapsence.key, target: /certs/mapsence.key, read_only: true }
+      - ./certs/ca.crt:/certs/ca.crt:ro
+      - ./certs/mapsence.crt:/certs/mapsence.crt:ro
+      - ./certs/mapsence.key:/certs/mapsence.key:ro
 
 volumes:
   receiver-data:

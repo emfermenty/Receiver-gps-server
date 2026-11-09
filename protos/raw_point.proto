@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+option csharp_namespace = "RawPoints.Grpc";
+
+package rawpoints;
+
+import "google/protobuf/timestamp.proto";
+
+service RawPointTransfer {
+    rpc SendPoint (RawPoint) returns (PointResponse);
+    rpc SendPoints (stream RawPoint) returns (TransferResponse);
+}
+
+message RawPoint {
+    int64 source_id = 1;
+
+    string imei = 2;
+    string manufacturer = 3;
+    string model = 4;
+    string firmware = 5;
+
+    string session_ip = 6;
+    google.protobuf.Timestamp session_started_at = 7;
+
+    int32 event_code = 8;
+    string event_name = 9;
+
+    google.protobuf.Timestamp device_time = 10;
+    google.protobuf.Timestamp received_at = 11;
+
+    double latitude = 12;
+    double longitude = 13;
+    int32 height = 14;
+    double speed = 15;
+    double course = 16;
+    int32 satellite_count = 17;
+    int32 battery_mv = 18;
+}
+
+message PointResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+message TransferResponse {
+    bool success = 1;
+    int32 received_count = 2;
+    string error = 3;
+}
